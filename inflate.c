@@ -64,8 +64,8 @@ int dbits = 6;          /* bits in base distance lookup table */
 #define N_MAX 288       /* maximum number of codes in any set */
 
 #define NEXTBYTE()  (uch)get_byte()
-#define NEEDBITS(n) {while(k<(n)){b|=((ulg)NEXTBYTE())<<k;k+=8;}}
-#define DUMPBITS(n) {b>>=(n);k-=(n);}
+#define NEEDBITS(n) do {while(k<(n)){b|=((ulg)NEXTBYTE())<<k;k+=8;}} while(0)
+#define DUMPBITS(n) do {b>>=(n);k-=(n);}while(0)
 #define get_byte()  pzip->inbuf[pzip->inptr++]
 
 int huft_free(struct huft *t)
@@ -217,7 +217,6 @@ int *m;                 /* maximum lookup bits, returns actual */
 						huft_free(u[0]);
 					return 3;             /* not enough memory */
 				}
-				// hufts += z + 1;         /* track memory usage */
 				*t = q + 1;             /* link to list for huft_free() */
 				*(t = &(q->v.t)) = (struct huft *)NULL;
 				u[h] = ++q;             /* table starts after link */
@@ -295,16 +294,16 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
   md = mask_bits[bd];
   for (;;)                      /* do until end of block */
   {
-    NEEDBITS((unsigned)bl)
+    NEEDBITS((unsigned)bl);
     if ((e = (t = tl + ((unsigned)b & ml))->e) > 16)
       do {
         if (e == 99)
           return 1;
-        DUMPBITS(t->b)
+        DUMPBITS(t->b);
         e -= 16;
-        NEEDBITS(e)
+        NEEDBITS(e);
       } while ((e = (t = t->v.t + ((unsigned)b & mask_bits[e]))->e) > 16);
-    DUMPBITS(t->b)
+    DUMPBITS(t->b);
     if (e == 16)                /* then it's a literal */
     {
 		if (pzip->outbuf) {
@@ -321,24 +320,24 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
         break;
 
       /* get length of block to copy */
-      NEEDBITS(e)
+      NEEDBITS(e);
       n = t->v.n + ((unsigned)b & mask_bits[e]);
-      DUMPBITS(e);
+      DUMPBITS(e);;
 
       /* decode distance of block to copy */
-      NEEDBITS((unsigned)bd)
+      NEEDBITS((unsigned)bd);
       if ((e = (t = td + ((unsigned)b & md))->e) > 16)
         do {
           if (e == 99)
             return 1;
-          DUMPBITS(t->b)
+          DUMPBITS(t->b);
           e -= 16;
-          NEEDBITS(e)
+          NEEDBITS(e);
         } while ((e = (t = t->v.t + ((unsigned)b & mask_bits[e]))->e) > 16);
-      DUMPBITS(t->b)
-      NEEDBITS(e)
+      DUMPBITS(t->b);
+      NEEDBITS(e);
       d = t->v.n + ((unsigned)b & mask_bits[e]);
-	  DUMPBITS(e);
+	  DUMPBITS(e);;
 
 	  while (n--) {
 		  if (pzip->outbuf) {
@@ -380,24 +379,24 @@ int inflate_dynamic(zip_t *pzip)
   k = pzip->bk;
 
   /* read in table lengths */
-  NEEDBITS(5)
+  NEEDBITS(5);
   nl = 257 + ((unsigned)b & 0x1f);      /* number of literal/length codes */
-  DUMPBITS(5)
-  NEEDBITS(5)
+  DUMPBITS(5);
+  NEEDBITS(5);
   nd = 1 + ((unsigned)b & 0x1f);        /* number of distance codes */
-  DUMPBITS(5)
-  NEEDBITS(4)
+  DUMPBITS(5);
+  NEEDBITS(4);
   nb = 4 + ((unsigned)b & 0xf);         /* number of bit length codes */
-  DUMPBITS(4)
+  DUMPBITS(4);
   if (nl > 286 || nd > 30)
     return 1;                   /* bad lengths */
 
   /* read in bit-length-code lengths */
   for (j = 0; j < nb; j++)
   {
-    NEEDBITS(3)
+    NEEDBITS(3);
     ll[border[j]] = (unsigned)b & 7;
-    DUMPBITS(3)
+    DUMPBITS(3);
   }
   for (; j < 19; j++)
     ll[border[j]] = 0;
@@ -417,17 +416,17 @@ int inflate_dynamic(zip_t *pzip)
   i = l = 0;
   while ((unsigned)i < n)
   {
-    NEEDBITS((unsigned)bl)
+    NEEDBITS((unsigned)bl);
     j = (td = tl + ((unsigned)b & m))->b;
-    DUMPBITS(j)
+    DUMPBITS(j);
     j = td->v.n;
     if (j < 16)                 /* length of code in bits (0..15) */
       ll[i++] = l = j;          /* save last length in l */
     else if (j == 16)           /* repeat last length 3 to 6 times */
     {
-      NEEDBITS(2)
+      NEEDBITS(2);
       j = 3 + ((unsigned)b & 3);
-      DUMPBITS(2)
+      DUMPBITS(2);
       if ((unsigned)i + j > n)
         return 1;
       while (j--)
@@ -435,9 +434,9 @@ int inflate_dynamic(zip_t *pzip)
     }
     else if (j == 17)           /* 3 to 10 zero length codes */
     {
-      NEEDBITS(3)
+      NEEDBITS(3);
       j = 3 + ((unsigned)b & 7);
-      DUMPBITS(3)
+      DUMPBITS(3);
       if ((unsigned)i + j > n)
         return 1;
       while (j--)
@@ -446,9 +445,9 @@ int inflate_dynamic(zip_t *pzip)
     }
     else                        /* j == 18: 11 to 138 zero length codes */
     {
-      NEEDBITS(7)
+      NEEDBITS(7);
       j = 11 + ((unsigned)b & 0x7f);
-      DUMPBITS(7)
+      DUMPBITS(7);
       if ((unsigned)i + j > n)
         return 1;
       while (j--)
@@ -511,14 +510,14 @@ int inflate_block(zip_t *pzip, int *e)
   k = pzip->bk;
 
   /* read in last block bit */
-  NEEDBITS(1)
+  NEEDBITS(1);
   *e = (int)b & 1;
-  DUMPBITS(1)
+  DUMPBITS(1);
 
   /* read in block type */
-  NEEDBITS(2)
+  NEEDBITS(2);
   t = (unsigned)b & 3;
-  DUMPBITS(2)
+  DUMPBITS(2);
 
   /* restore the global bit buffer */
   pzip->bb = b;
@@ -536,22 +535,15 @@ int inflate(zip_t *pzip)
 {
 	int e;                /* last block flag */
 	int r;                /* result code */
-	// unsigned h;           /* maximum struct huft's malloc'ed */
 
 	pzip->bb = 0;
 	pzip->bk = 0;
 	pzip->outcnt = 0;
 						  /* initialize window, bit buffer */
 	/* decompress until the last block */
-	// h = 0;
 	do {
-		// pzip->hufts = 0;
 		if ((r = inflate_block(pzip, &e)) != 0)
 			return r;
-		/*
-		if (pzip->hufts > h)
-			h = pzip->hufts;
-		*/
 	} while (!e);
 
 	return 0;
