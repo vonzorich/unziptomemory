@@ -307,11 +307,9 @@ int bl, bd;             /* number of bits decoded by tl[] and td[] */
     if (e == 16)                /* then it's a literal */
     {
 		if (pzip->outbuf) {
-			pzip->outbuf[pzip->outcnt++] = (uch)t->v.n;
+			pzip->outbuf[pzip->outcnt] = (uch)t->v.n;
 		}
-		else {
-			pzip->outcnt++;
-		}
+		pzip->outcnt++;
     }
     else                        /* it's an EOB or a length */
     {
